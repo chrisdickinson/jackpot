@@ -1,11 +1,13 @@
 <?php
 require_once('jackpot/core/import.php');
-require_once('jackpot/http/request.php');
-require_once('jackpot/http/response.php');
-require_once('jackpot/http/exceptions.php');
-require_once('jackpot/conf/settings.php');
-require_once('jackpot/core/urlresolver.php');
-require_once('jackpot/middleware/core.php');
+import('jackpot.http.request');
+import('jackpot.http.response');
+import('jackpot.http.exceptions');
+import('jackpot.conf.settings');
+import('jackpot.middleware.core');
+import('jackpot.template.template');
+import('jackpot.template.context');
+import('jackpot.core.urlresolver');
 
 function request($request) {
     #ob_start();
@@ -13,6 +15,13 @@ function request($request) {
     $settings =& Settings::configure(getenv('JACKPOT_SETTINGS'));
     $request =  Middleware::process($settings->MIDDLEWARE_CLASSES, $request);
     $urlresolver =& new URLResolver(import($settings->ROOT_URLCONF));
+    $template_loaders = array();    
+    foreach($settings->TEMPLATE_LOADERS as $template_loader) {
+        $template_loaders = import($template_loader);
+    }        
+    $template_engine = import($settings->TEMPLATE_ENGINE);    
+    template_initialize($settings);
+
     $response = null;
     if($settings->database) {
         ORM::initialize($settings->database);
@@ -21,11 +30,16 @@ function request($request) {
         $response = $urlresolver->resolve($request);
     }
     catch(Http404Exception $error) {
-        
-        if($settings->DEBUG) {
-            var_dump($error);
-        }
-        $response =& new Http500();
+        $template = new Template($settings->DEBUG ? 'debug/404.html' : '404.html');
+        $context = new Context();
+        $context->error($error)->request($request)->settings($settings);
+        $response =& new Http404($template->render($context));
+    }
+    catch(Exception $error) {
+        $template = new Template($settings->DEBUG ? 'debug/500.html' : '500.html');
+        $context = new Context();
+        $context->error($error)->request($request)->settings($settings);
+        $response =& new Http500($template->render($context));
     }
     #ob_end_clean();
     return $response;
