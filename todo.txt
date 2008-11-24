@@ -1,0 +1,19 @@
+request hits ->
+        get and post are stuffed into request object 
+        beautify:
+            object is overridden,
+            __call, __get, __set, and __toString are stuffed into prettier functions
+            superglobals are removed, by and large
+        default settings are loaded
+        new settings are attempted
+        database connection is attempted
+        applications are loaded / checked
+        middleware is run / request is decorated
+        url is loaded from settings
+            url is handed to resultant urlresolver
+            calls view!
+            expects either a httpresponse object
+                ->templating
+            or an exception
+->renders
+
