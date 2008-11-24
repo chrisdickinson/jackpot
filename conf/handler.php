@@ -12,7 +12,7 @@ function request($request) {
     $request =& new HttpRequest($request);
     $settings =& Settings::configure(getenv('JACKPOT_SETTINGS'));
     $request =  Middleware::process($settings->MIDDLEWARE_CLASSES, $request);
-    $urlresolver =& new URLResolver($settings->ROOT_URLCONF);
+    $urlresolver =& new URLResolver(import($settings->ROOT_URLCONF));
     $response = null;
     if($settings->database) {
         ORM::initialize($settings->database);

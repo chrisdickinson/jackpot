@@ -2,8 +2,10 @@
 
 class HttpException extends Exception {
     var $request;
-    public function __construct($request) {
+    var $attempted_urls;
+    public function __construct($request, $attempted_urls) {
         $this->request = $request;
+        $this->attempted_urls = $attempted_urls;
     }
 }
 
