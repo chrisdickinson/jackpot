@@ -46,7 +46,7 @@ class URLResolver {
     public function resolve($request) {
         $attempted_urls = array();
         foreach($this->urls as $url) {
-            $attempted_urls[] = $url;
+            $attempted_urls[] = $url->regex;
             if($matches = $url->match($request->uri)) {
                 $response = null;
                 $module = $url->target;
@@ -56,18 +56,21 @@ class URLResolver {
                 if($module instanceof ModuleFunction) {
                     $module = "$module";
                     $response = $module($request, $matches);
+                    return $response;
                 }
                 else if(gettype($module) == 'object') {
                     $internal_urlconf = new URLResolver($module);
                     try {
                         $request->uri = str_replace($matches[0],'',$request->uri);
                         $response = $internal_urlconf->resolve($request);
+                        return $response;
                     }
                     catch (Http404Exception $ex) { 
-                        $attempted_urls += $ex->attempted_urls;
+                        foreach($ex->attempted_urls as $exurl) {
+                            $attempted_urls[] = $url->regex . $exurl;
+                        }
                     }
                 }
-                return $response;
             }
         }
         throw new Http404Exception($request, $attempted_urls);

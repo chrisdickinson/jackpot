@@ -26,4 +26,14 @@ function template_display($file) {
     $module->smarty->display($file);
 }
 
+function template_set_dir($directory) {
+    $module = import('jackpot.template.smarty');
+    $module->smarty->template_dir = $directory;
+}
+
+function template_valid ($file) {
+    $module = import('jackpot.template.smarty');
+    return $module->smarty->template_exists($file);
+}
+
 ?>
