@@ -8,12 +8,18 @@ import('jackpot.middleware.core');
 import('jackpot.template.template');
 import('jackpot.template.context');
 import('jackpot.core.urlresolver');
+require_once('jackpot/models/core.php');
 
 function request($request) {
     #ob_start();
     $request =& new HttpRequest($request);
     $settings =& Settings::configure(getenv('JACKPOT_SETTINGS'));
-    $request =  Middleware::process($settings->MIDDLEWARE_CLASSES, $request);
+
+    foreach($settings->MIDDLEWARE_CLASSES as $middleware) {
+        $module = import($middleware);
+        $request = $module->process($request);
+    }
+
     $urlresolver =& new URLResolver(import($settings->ROOT_URLCONF));
     $template_loaders = array();    
     foreach($settings->TEMPLATE_LOADERS as $template_loader) {
@@ -30,10 +36,19 @@ function request($request) {
         $response = $urlresolver->resolve($request);
     }
     catch(Http404Exception $error) {
-        $template = new Template($settings->DEBUG ? 'debug/404.html' : '404.html');
-        $context = new Context();
-        $context->error($error)->request($request)->settings($settings);
-        $response =& new Http404($template->render($context));
+        foreach($settings->FALLBACK_CLASSES as $fallback) {
+            $module = import($fallback);
+            $response = $module->process($request);
+            if(!empty($response)) {
+                break;
+            }
+        }
+        if(empty($response)) {
+            $template = new Template($settings->DEBUG ? 'debug/404.html' : '404.html');
+            $context = new Context();
+            $context->error($error)->request($request)->settings($settings);
+            $response =& new Http404($template->render($context));
+        }
     }
     catch(Exception $error) {
         $template = new Template($settings->DEBUG ? 'debug/500.html' : '500.html');
