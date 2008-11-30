@@ -50,15 +50,16 @@ class URLResolver {
             if($matches = $url->match($request->uri)) {
                 $response = null;
                 $module = $url->target;
+
                 if(is_string($url->target)) {
                     $module = import($module);
                 }
-                if($module instanceof ModuleFunction) {
-                    $module = "$module";
+
+                if($module instanceof Closure) {
                     $response = $module($request, $matches);
                     return $response;
                 }
-                else if(gettype($module) == 'object') {
+                else if($module instanceof Module) {
                     $internal_urlconf = new URLResolver($module);
                     try {
                         $request->uri = str_replace($matches[0],'',$request->uri);

@@ -1,20 +1,19 @@
 <?php
+require_once('jackpot/core/jobject.php');
 require_once('jackpot/core/import.php');
 import('jackpot.http.request');
 import('jackpot.http.response');
 import('jackpot.http.exceptions');
-import('jackpot.conf.settings');
 import('jackpot.middleware.core');
 import('jackpot.template.template');
 import('jackpot.template.context');
 import('jackpot.core.urlresolver');
-require_once('jackpot/models/core.php');
+import('jackpot.core.models');
 
 function request($request) {
     #ob_start();
     $request =& new HttpRequest($request);
-    $settings =& Settings::configure(getenv('JACKPOT_SETTINGS'));
-
+    $settings =& import(getenv('JACKPOT_SETTINGS'));
     foreach($settings->MIDDLEWARE_CLASSES as $middleware) {
         $module = import($middleware);
         $request = $module->process($request);
@@ -38,7 +37,7 @@ function request($request) {
     catch(Http404Exception $error) {
         foreach($settings->FALLBACK_CLASSES as $fallback) {
             $module = import($fallback);
-            $response = $module->process($request);
+            $response = $module($request);
             if(!empty($response)) {
                 break;
             }

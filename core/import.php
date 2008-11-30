@@ -1,17 +1,6 @@
 <?php
 
-class ModuleFunction {
-    var $name; 
-    public function __construct($name) {
-        $this->name = $name;
-    }
-
-    public function __toString() {
-        return "{$this->name}";
-    }
-}
-
-class Module implements IteratorAggregate {
+class Module {
     static private $included = array();
 
     var $names = array();
@@ -49,8 +38,6 @@ class Module implements IteratorAggregate {
         $rest = array();    
         $__attempted_paths = array();
         while(!empty($path)) {
-            $functions = get_defined_functions();
-            $functions = $functions['user'];
             $__attempted_paths[] = $__path = implode('/', $path).'.php';
             if(self::$included[$__path]) {
                 //okay, we've got the module,
@@ -60,32 +47,40 @@ class Module implements IteratorAggregate {
                 }
                 return $return;
             }
-            else if((@include($__path))) {
+            else {
+                $includable = function () use ($__path) {
+                    $paths = explode(':', get_include_path());
+                    foreach($paths as $path) {
+                        if(is_file("$path/$__path")) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                if($includable() && (include($__path))) {
+                    $names = get_defined_vars();
+                    $this->names = array_diff_key($names, $this->names);
+                    $return = $this;
+                    if(!empty($rest)) {
+                        $return = $this->return_rest($this, $rest);
+                    }
+                    self::$included[$__path] = $this;
 
-                $names = get_defined_vars();
-                $new_functions = get_defined_functions();
-                $new_functions = array_diff($new_functions['user'], $functions);
-                $this->names = $names;
-                foreach($new_functions as $fnname) { 
-                    $this->names[$fnname] = new ModuleFunction($fnname);
+                    return $return; 
+                } else {
+                    $rest[] = array_pop($path); 
                 }
-                $this->names = array_merge($this->names, $names);
-                
-                $return = $this;
-                if(!empty($rest)) {
-                    $return = $this->return_rest($this, $rest);
-                }
-                self::$included[$__path] = $this;
-
-                return $return; 
-            } else {
-                $rest[] = array_pop($path); 
             }
         }  
         throw new Exception("Could not import {$this->name}");
     }
 
     public function __get($name) {
+        return $this->names[$name];
+    }
+
+    public function __set($name, $value) {
+        $this->names[$name] = $value;
         return $this->names[$name];
     }
 }
